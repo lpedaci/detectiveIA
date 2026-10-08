@@ -190,7 +190,7 @@
   const selfUrl = window.location.href.split('#')[0];
   $('newtab').href = selfUrl;
   $('notice-link').href = selfUrl;
-  if (framed) $('newtab').hidden = false;
+  if (framed) { $('newtab').hidden = false; $('topbar').hidden = false; }
   if (!storageOK) $('storage-notice').hidden = false;
 
   // Al terminar la entrada se quita .reveal para que otras animaciones no la reinicien.
@@ -578,8 +578,9 @@
   function renderTheme() {
     const cur = currentTheme();
     themeBtn.dataset.current = cur;
-    $('theme-label').textContent = cur === 'dark' ? 'Modo claro' : 'Modo oscuro';
-    themeBtn.setAttribute('aria-label', cur === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+    const label = cur === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+    themeBtn.setAttribute('aria-label', label);
+    themeBtn.title = label;
     // La barra del navegador en el celular acompaña el tema elegido.
     document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
       m.setAttribute('content', cur === 'dark' ? '#10171E' : '#E9EDF1');
