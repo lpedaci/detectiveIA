@@ -164,7 +164,7 @@
       '<p class="mission">' + l.mission + '</p>' +
       '<div class="clue">' +
         '<span class="clue-title">' + l.clueTitle + '</span>' +
-        '<span class="redacted" id="redact-' + l.n + '" aria-label="Pista clasificada"><span></span><span></span></span>' +
+        '<span class="redacted" id="redact-' + l.n + '"><span aria-hidden="true"></span><span aria-hidden="true"></span><span class="sr-only">Pista clasificada: se revela al desbloquear este nivel.</span></span>' +
         '<p class="clue-text" id="cluetext-' + l.n + '" hidden>' + l.clue + '</p>' +
       '</div>' +
       (idx > 0 ? '<p class="locked-note" id="locknote-' + l.n + '" hidden>' + ICONS.candado + '<span id="locktext-' + l.n + '"></span></p>' : '') +
@@ -245,21 +245,37 @@
     f.addEventListener('animationend', () => f.remove());
   }
 
+  // Un solo aviso visible a la vez: si en el mismo cambio hay varios logros, se unen.
+  // Es solo visual; los lectores de pantalla reciben el mensaje por #announcer.
+  let pendingToasts = [];
   function toast(icon, title, body) {
+    pendingToasts.push({ icon, title, body });
+    if (pendingToasts.length === 1) queueMicrotask(flushToasts);
+  }
+  function flushToasts() {
+    const list = pendingToasts;
+    pendingToasts = [];
+    if (!list.length) return;
     const wrap = $('toasts');
-    while (wrap.children.length >= 2) wrap.firstChild.remove();
+    wrap.textContent = '';
     const t = document.createElement('div');
     t.className = 'toast';
-    t.setAttribute('role', 'status');
-    t.innerHTML = ICONS[icon] + '<div><strong></strong><span></span></div>';
-    t.querySelector('strong').textContent = title;
-    t.querySelector('span').textContent = body;
+    t.innerHTML = ICONS[list[0].icon] + '<div><strong></strong><span></span></div>';
+    t.querySelector('strong').textContent = list.map((x) => x.title).join(' · ');
+    t.querySelector('span').textContent = list.map((x) => x.body).join(' ');
     wrap.appendChild(t);
-    setTimeout(() => {
+    let timer = 0;
+    const close = () => {
+      clearTimeout(timer);
       if (reduced()) { t.remove(); return; }
       t.classList.add('out');
       t.addEventListener('animationend', () => t.remove());
-    }, 4200);
+    };
+    const arm = () => { clearTimeout(timer); timer = setTimeout(close, 5000); };
+    t.addEventListener('click', close);           // se cierra al tocarlo
+    t.addEventListener('mouseenter', () => clearTimeout(timer)); // se pausa con el mouse encima
+    t.addEventListener('mouseleave', arm);
+    arm();
   }
 
   function announce(msg) {
@@ -356,6 +372,8 @@
     }
 
     // Insignias
+    $('badges-count').textContent = BADGES.filter((b) => c.badges[b.key]).length;
+    $('badges-total').textContent = BADGES.length;
     BADGES.forEach((b) => {
       const el = $('badge-' + b.key);
       const on = c.badges[b.key];
@@ -457,6 +475,7 @@
       }
       if (c.badges.pista && !prev.badges.pista && !msgs.length) {
         toast('estrella', 'Primera pista', 'Ya arrancaste la investigación. Seguí así.');
+        msgs.push('Ganaste la insignia Primera pista.');
       }
       // Se desmarcó una tarea y se bloquearon niveles siguientes
       const relocked = LEVELS.filter((l, idx) => prev.unlocked[idx] && !c.unlocked[idx]);

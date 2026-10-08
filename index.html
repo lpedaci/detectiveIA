@@ -47,12 +47,14 @@
     <span>Puede pasar en modo incógnito o cuando el aula virtual muestra el tablero incrustado y el navegador bloquea el almacenamiento. Podés usar el tablero igual, pero se va a borrar al cerrarlo. <a href="./" target="_blank" rel="noopener" id="notice-link">Abrilo en una pestaña nueva</a> para que se guarde.</span>
   </div>
 
-  <section class="board card reveal" style="--d:1" aria-label="Tu tablero">
+  <main id="contenido" class="main">
+  <section class="board card reveal" style="--d:1" aria-labelledby="board-title">
+    <h2 class="sr-only" id="board-title">Tu tablero</h2>
     <div class="who">
       <div class="avatar" id="avatar" aria-hidden="true">?</div>
       <div class="who-field">
         <label for="nombre">Tu nombre de detective</label>
-        <input type="text" id="nombre" maxlength="30" placeholder="Por ejemplo: Inspectora Quiroga" autocomplete="off" spellcheck="false">
+        <input type="text" id="nombre" maxlength="30" placeholder="Ej.: Inspectora Quiroga" autocomplete="off" spellcheck="false">
       </div>
     </div>
 
@@ -81,12 +83,13 @@
     </div>
 
     <div>
-      <div class="mono" style="margin-bottom:8px" id="badges-label">Insignias</div>
+      <div class="mono" style="margin-bottom:8px" id="badges-label">Insignias · <span id="badges-count">0</span> de <span id="badges-total">5</span></div>
       <div class="badges" id="badges" role="list" aria-labelledby="badges-label"></div>
     </div>
   </section>
 
   <section class="levels" id="levels" aria-label="Niveles"></section>
+  </main>
 
   <footer class="foot reveal" style="--d:6">
     <div class="foot-text">
@@ -97,7 +100,7 @@
   </footer>
 </div>
 
-<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+<div class="toasts" id="toasts" aria-hidden="true"></div>
 <div class="sr-only" id="announcer" aria-live="polite"></div>
 
 <script src="assets/js/data.js" defer></script>
