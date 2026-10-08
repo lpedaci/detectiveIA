@@ -190,7 +190,7 @@
   const selfUrl = window.location.href.split('#')[0];
   $('newtab').href = selfUrl;
   $('notice-link').href = selfUrl;
-  if (framed) { $('newtab').hidden = false; $('topbar').hidden = false; }
+  if (framed) { $('newtab').hidden = false; if ($('topbar')) $('topbar').hidden = false; }
   if (!storageOK) $('storage-notice').hidden = false;
 
   // Al terminar la entrada se quita .reveal para que otras animaciones no la reinicien.
@@ -576,6 +576,7 @@
   const currentTheme = () => savedTheme() || (systemDark.matches ? 'dark' : 'light');
 
   function renderTheme() {
+    if (!themeBtn) return; // HTML viejo en caché sin el botón
     const cur = currentTheme();
     themeBtn.dataset.current = cur;
     const label = cur === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
@@ -587,7 +588,7 @@
     });
   }
 
-  themeBtn.addEventListener('click', () => {
+  if (themeBtn) themeBtn.addEventListener('click', () => {
     const next = currentTheme() === 'dark' ? 'light' : 'dark';
     const root = document.documentElement;
     if (!reduced()) {

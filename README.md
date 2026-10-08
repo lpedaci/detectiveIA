@@ -51,6 +51,10 @@ No se envía ningún dato a ningún servidor.
         width="100%" height="900" style="border:0" loading="lazy"></iframe>
 ```
 
+## Caché del navegador al actualizar
+
+GitHub Pages permite que los navegadores guarden una copia de los archivos por unos minutos. Para que nadie vea una mezcla de versión nueva y vieja, `index.html` carga el CSS y el JS con un número de versión (`styles.css?v=...`, `app.js?v=...`, `data.js?v=...`). **Cada vez que se modifique un archivo de `assets/css` o `assets/js`, hay que cambiar ese número en los tres enlaces** (por ejemplo, con la fecha).
+
 ## Editar el contenido
 
 Los niveles, tareas, XP, pistas y rangos están en `assets/js/data.js` (constantes `LEVELS` y `RANKS`). No hace falta tocar `app.js`. El XP total, las marcas de la barra y los rangos se calculan solos. Si se cambian los `id` de las tareas, el avance guardado de esas tareas se descarta.
