@@ -260,21 +260,69 @@
     wrap.textContent = '';
     const t = document.createElement('div');
     t.className = 'toast';
-    t.innerHTML = ICONS[list[0].icon] + '<div><strong></strong><span></span></div>';
-    t.querySelector('strong').textContent = list.map((x) => x.title).join(' · ');
-    t.querySelector('span').textContent = list.map((x) => x.body).join(' ');
+    t.innerHTML = '<i class="toast-grip" aria-hidden="true"></i>' + ICONS[list[0].icon] + '<div><strong class="toast-title"></strong><span class="toast-body"></span></div>';
+    t.querySelector('.toast-title').textContent = list.map((x) => x.title).join(' · ');
+    t.querySelector('.toast-body').textContent = list.map((x) => x.body).join(' ');
     wrap.appendChild(t);
     let timer = 0;
+    let closed = false;
     const close = () => {
+      if (closed) return;
+      closed = true;
       clearTimeout(timer);
       if (reduced()) { t.remove(); return; }
       t.classList.add('out');
       t.addEventListener('animationend', () => t.remove());
     };
-    const arm = () => { clearTimeout(timer); timer = setTimeout(close, 5000); };
-    t.addEventListener('click', close);           // se cierra al tocarlo
-    t.addEventListener('mouseenter', () => clearTimeout(timer)); // se pausa con el mouse encima
-    t.addEventListener('mouseleave', arm);
+    // Se cierra a los 5 s; si en ese momento el mouse está encima, espera un poco más.
+    const tick = () => {
+      let hovered = false;
+      try { hovered = t.matches(':hover'); } catch (err) { /* navegador sin :hover */ }
+      if (hovered || dragging) timer = setTimeout(tick, 1000); else close();
+    };
+    const arm = () => { clearTimeout(timer); timer = setTimeout(tick, 5000); };
+
+    // Deslizar hacia un costado para descartar (dedo o mouse).
+    // touch-action: pan-y deja libre el desplazamiento vertical de la página.
+    let startX = 0, startT = 0, dx = 0, dragging = false, moved = false, pid = null;
+    t.addEventListener('pointerdown', (e) => {
+      if (e.button !== undefined && e.button !== 0) return;
+      dragging = true; moved = false; dx = 0; pid = e.pointerId;
+      startX = e.clientX; startT = performance.now();
+      clearTimeout(timer);
+      t.classList.remove('settle');
+      t.classList.add('dragging');
+      try { t.setPointerCapture(pid); } catch (err) { /* sin captura: sigue funcionando */ }
+    });
+    t.addEventListener('pointermove', (e) => {
+      if (!dragging || e.pointerId !== pid) return;
+      dx = e.clientX - startX;
+      if (Math.abs(dx) > 4) moved = true;
+      t.style.transform = 'translateX(' + dx + 'px) rotate(' + (dx / 40) + 'deg)';
+      t.style.opacity = String(Math.max(0.15, 1 - Math.abs(dx) / (t.offsetWidth * 0.9)));
+    });
+    const release = (e) => {
+      if (!dragging || (e && e.pointerId !== pid)) return;
+      dragging = false;
+      t.classList.remove('dragging');
+      const speed = Math.abs(dx) / Math.max(1, performance.now() - startT); // px/ms
+      if (Math.abs(dx) > t.offsetWidth * 0.3 || (Math.abs(dx) > 30 && speed > 0.5)) {
+        closed = true;
+        clearTimeout(timer);
+        t.classList.add('fling');
+        t.style.transform = 'translateX(' + (dx > 0 ? 1 : -1) * (t.offsetWidth + 60) + 'px) rotate(' + (dx > 0 ? 8 : -8) + 'deg)';
+        t.style.opacity = '0';
+        setTimeout(() => t.remove(), reduced() ? 0 : 260);
+        return;
+      }
+      if (!moved) { close(); return; } // un toque simple también lo cierra
+      t.classList.add('settle');
+      t.style.transform = '';
+      t.style.opacity = '';
+      arm();
+    };
+    t.addEventListener('pointerup', release);
+    t.addEventListener('pointercancel', (e) => { moved = true; release(e); });
     arm();
   }
 
@@ -520,6 +568,43 @@
     if (e.target.closest('.level-toggle') === null) btn.focus({ preventScroll: true });
   });
 
+  /* ================= Tema claro / oscuro ================= */
+  const THEME_KEY = 'detective-ia-theme';
+  const themeBtn = $('theme-toggle');
+  const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+  const savedTheme = () => document.documentElement.getAttribute('data-theme');
+  const currentTheme = () => savedTheme() || (systemDark.matches ? 'dark' : 'light');
+
+  function renderTheme() {
+    const cur = currentTheme();
+    themeBtn.dataset.current = cur;
+    $('theme-label').textContent = cur === 'dark' ? 'Modo claro' : 'Modo oscuro';
+    themeBtn.setAttribute('aria-label', cur === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro');
+    // La barra del navegador en el celular acompaña el tema elegido.
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
+      m.setAttribute('content', cur === 'dark' ? '#10171E' : '#E9EDF1');
+    });
+  }
+
+  themeBtn.addEventListener('click', () => {
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    const root = document.documentElement;
+    if (!reduced()) {
+      root.classList.add('theme-anim');
+      setTimeout(() => root.classList.remove('theme-anim'), 400);
+    }
+    root.setAttribute('data-theme', next);
+    try { window.localStorage.setItem(THEME_KEY, next); } catch (e) { /* sin almacenamiento: dura hasta cerrar */ }
+    renderTheme();
+    replay(themeBtn, 'spin');
+    announce(next === 'dark' ? 'Modo oscuro activado.' : 'Modo claro activado.');
+  });
+  // Si no eligió un tema, sigue al sistema en vivo.
+  const onSystem = () => { if (!savedTheme()) renderTheme(); };
+  if (systemDark.addEventListener) systemDark.addEventListener('change', onSystem);
+  else if (systemDark.addListener) systemDark.addListener(onSystem);
+  renderTheme();
+
   const nameInput = $('nombre');
   nameInput.value = state.name;
   let nameTimer = 0;
@@ -567,6 +652,12 @@
 
   // Sincroniza si el tablero está abierto en otra pestaña.
   window.addEventListener('storage', (e) => {
+    if (e.key === THEME_KEY) {
+      if (e.newValue === 'light' || e.newValue === 'dark') document.documentElement.setAttribute('data-theme', e.newValue);
+      else document.documentElement.removeAttribute('data-theme');
+      renderTheme();
+      return;
+    }
     if (e.key !== KEY) return;
     state = parseState(e.newValue);
     if (document.activeElement !== nameInput) nameInput.value = state.name;

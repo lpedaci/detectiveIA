@@ -63,6 +63,11 @@ Los niveles, tareas, XP, pistas y rangos están en `assets/js/data.js` (constant
 - Insignias: «Primera pista» (primera tarea marcada) y una por nivel completo.
 - Rangos: Aprendiz (0 XP), Detective (50), Detective senior (100), Jefe/a de investigación (140). Total: 150 XP.
 
+## Tema y avisos
+
+- Botón «Modo oscuro / Modo claro» arriba a la derecha. La elección se guarda en el navegador (clave `detective-ia-theme`); si no se elige, sigue la configuración del sistema.
+- Los avisos de logros se descartan deslizándolos hacia un costado, tocándolos, o se cierran solos a los 5 segundos (esperan si el mouse está encima).
+
 ## Accesibilidad y movimiento
 
 Contraste en modo claro y oscuro (según el sistema), navegación con teclado, anuncios para lectores de pantalla y animaciones desactivadas si la persona tiene activado «reducir movimiento».
