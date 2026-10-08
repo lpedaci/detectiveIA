@@ -2,7 +2,24 @@
 
 Tablero de autoseguimiento para la actividad gamificada «Misión: Detective de la IA» (Programa de formación docente, 4.º año). Cada participante marca las tareas que completó en el aula virtual, suma XP, desbloquea niveles y gana insignias.
 
-Es un único archivo, `index.html`, sin dependencias ni servidor.
+Es un sitio estático, sin dependencias ni servidor.
+
+## Estructura
+
+```
+detectiveIA/
+├── index.html              Página (estructura y textos fijos)
+├── assets/
+│   ├── css/styles.css      Estilos, temas claro/oscuro y animaciones
+│   ├── js/data.js          Contenido del caso: niveles, tareas, XP, pistas y rangos
+│   ├── js/app.js           Lógica del tablero (progreso, guardado, animaciones)
+│   └── img/
+│       ├── favicon.svg         Ícono de pestaña
+│       ├── apple-touch-icon.png Ícono al guardar en el celular
+│       └── og-image.png        Vista previa al compartir el enlace (1200×630)
+├── .nojekyll               Indica a GitHub Pages que publique los archivos tal cual
+└── README.md
+```
 
 ## Cómo se guarda el avance
 
@@ -36,7 +53,7 @@ No se envía ningún dato a ningún servidor.
 
 ## Editar el contenido
 
-Los niveles, tareas, XP, pistas y rangos están en las constantes `LEVELS` y `RANKS` al inicio del `<script>`. El XP total, las marcas de la barra y los rangos se calculan solos. Si se cambian los `id` de las tareas, el avance guardado de esas tareas se descarta.
+Los niveles, tareas, XP, pistas y rangos están en `assets/js/data.js` (constantes `LEVELS` y `RANKS`). No hace falta tocar `app.js`. El XP total, las marcas de la barra y los rangos se calculan solos. Si se cambian los `id` de las tareas, el avance guardado de esas tareas se descarta.
 
 ## Reglas del juego
 
