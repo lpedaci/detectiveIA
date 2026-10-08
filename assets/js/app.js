@@ -10,6 +10,7 @@
     estrella: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.6 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
     candado: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
     check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
+    chevron: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
     trofeo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M9 20h6"/></svg>'
   };
 
@@ -153,8 +154,12 @@
       '<div class="level-top">' +
         '<div class="level-title"><span class="seal" id="seal-' + l.n + '" aria-hidden="true"></span>' +
         '<h2 id="lvl-title-' + l.n + '"><span class="lv">Nivel ' + l.n + ' ·</span> ' + l.name + '</h2></div>' +
-        '<div class="status"><span class="count" id="count-' + l.n + '"></span><span class="pill" id="pill-' + l.n + '"></span></div>' +
+        '<div class="status"><span class="count" id="count-' + l.n + '"></span><span class="pill" id="pill-' + l.n + '"></span>' +
+          '<button type="button" class="level-toggle" id="toggle-' + l.n + '" data-level="' + idx + '" aria-controls="body-' + l.n + '" aria-expanded="true" hidden>' +
+            '<span class="sr-only" id="toggle-label-' + l.n + '"></span>' + ICONS.chevron +
+          '</button></div>' +
       '</div>' +
+      '<div class="level-body" id="body-' + l.n + '"><div class="level-inner">' +
       '<div class="segs" aria-hidden="true">' + segs + '</div>' +
       '<p class="mission">' + l.mission + '</p>' +
       '<div class="clue">' +
@@ -163,7 +168,8 @@
         '<p class="clue-text" id="cluetext-' + l.n + '" hidden>' + l.clue + '</p>' +
       '</div>' +
       (idx > 0 ? '<p class="locked-note" id="locknote-' + l.n + '" hidden>' + ICONS.candado + '<span id="locktext-' + l.n + '"></span></p>' : '') +
-      '<div class="checks" role="group" aria-labelledby="lvl-title-' + l.n + '">' + checks + '</div>';
+      '<div class="checks" role="group" aria-labelledby="lvl-title-' + l.n + '">' + checks + '</div>' +
+      '</div></div>';
     levelsEl.appendChild(art);
   });
 
@@ -284,6 +290,25 @@
 
   let prev = null;
 
+  // Niveles completos: se pliegan y muestran solo el encabezado.
+  // expanded[idx] === true significa que la persona lo abrió a mano.
+  const expanded = {};
+  const collapseTimers = {};
+  const COLLAPSE_DELAY = 1100; // deja ver la tilde y el sello antes de plegar
+
+  function applyCollapse(l, idx, done) {
+    const el = $('lvl-' + l.n);
+    const collapsed = done && expanded[idx] !== true;
+    el.classList.toggle('collapsed', collapsed);
+    const body = $('body-' + l.n);
+    if (collapsed) body.setAttribute('inert', ''); else body.removeAttribute('inert');
+    const btn = $('toggle-' + l.n);
+    btn.hidden = !done;
+    btn.setAttribute('aria-expanded', String(!collapsed));
+    $('toggle-label-' + l.n).textContent = (collapsed ? 'Mostrar' : 'Ocultar') + ' el detalle del Nivel ' + l.n;
+    btn.title = collapsed ? 'Ver detalle' : 'Plegar nivel';
+  }
+
   function render() {
     const c = compute();
     const first = prev === null;
@@ -385,8 +410,23 @@
         if (done && !prev.levelDone[idx]) {
           replay(el, 'just-done');
           replay(pill, 'stamped');
+          // Queda abierto un instante y después se pliega solo.
+          expanded[idx] = true;
+          clearTimeout(collapseTimers[idx]);
+          collapseTimers[idx] = setTimeout(() => {
+            if (!prev || !prev.levelDone[idx]) return;
+            const body = $('body-' + l.n);
+            if (body.contains(document.activeElement)) $('toggle-' + l.n).focus({ preventScroll: true });
+            expanded[idx] = false;
+            applyCollapse(l, idx, true);
+          }, reduced() ? 400 : COLLAPSE_DELAY);
+        }
+        if (!done && prev.levelDone[idx]) {
+          clearTimeout(collapseTimers[idx]);
+          delete expanded[idx];
         }
       }
+      applyCollapse(l, idx, done);
     });
 
     // Sello del expediente
@@ -448,6 +488,19 @@
     render();
   });
 
+  // Abrir o plegar un nivel completo desde su encabezado.
+  levelsEl.addEventListener('click', (e) => {
+    const top = e.target.closest('.level-top');
+    if (!top) return;
+    const btn = top.querySelector('.level-toggle');
+    if (!btn || btn.hidden) return;
+    const idx = Number(btn.dataset.level);
+    clearTimeout(collapseTimers[idx]);
+    expanded[idx] = btn.getAttribute('aria-expanded') !== 'true';
+    applyCollapse(LEVELS[idx], idx, true);
+    if (e.target.closest('.level-toggle') === null) btn.focus({ preventScroll: true });
+  });
+
   const nameInput = $('nombre');
   nameInput.value = state.name;
   let nameTimer = 0;
@@ -481,6 +534,7 @@
       nameInput.value = '';
       save();
       prev = null; // sin animaciones de "nivel bloqueado" al reiniciar
+      Object.keys(expanded).forEach((k) => { clearTimeout(collapseTimers[k]); delete expanded[k]; });
       render();
       disarm();
       toast('candado', 'Tablero reiniciado', 'Tu avance se borró de este navegador.');

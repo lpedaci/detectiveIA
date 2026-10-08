@@ -58,6 +58,7 @@ Los niveles, tareas, XP, pistas y rangos están en `assets/js/data.js` (constant
 ## Reglas del juego
 
 - Un nivel se desbloquea al completar todas las tareas del anterior.
+- Al completar un nivel, su ficha se pliega y muestra solo el encabezado (número, nombre y estado). Se puede volver a abrir con la flecha o tocando el encabezado.
 - Si alguien desmarca una tarea, los niveles siguientes vuelven a bloquearse; sus marcas se conservan y vuelven a sumar al reabrirse.
 - Insignias: «Primera pista» (primera tarea marcada) y una por nivel completo.
 - Rangos: Aprendiz (0 XP), Detective (50), Detective senior (100), Jefe/a de investigación (140). Total: 150 XP.
